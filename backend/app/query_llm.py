@@ -1,16 +1,3 @@
-# app/query_llm.py
-def generate_clarification(query: str, context: str) -> str:
-    """
-    Calls Gemini to generate a clarifying question for ambiguous queries.
-    """
-    prompt = f"""
-    The user asked an ambiguous question: "{query}"
-    Based on the following context:
-    "{context}"
-    Generate a concise clarifying question to ask the user.
-    """
-    return ask_gemini(prompt)
-# app/query_llm.py
 import os
 import requests
 from dotenv import load_dotenv
@@ -19,6 +6,7 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 
+
 def ask_gemini(prompt: str) -> str:
     """
     Calls Gemini with a raw text prompt and returns text.
@@ -26,7 +14,6 @@ def ask_gemini(prompt: str) -> str:
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        # You can pass safety settings/params here if needed:
         "generationConfig": {
             "temperature": 0.2,
             "maxOutputTokens": 400
@@ -42,3 +29,30 @@ def ask_gemini(prompt: str) -> str:
         return data["candidates"][0]["content"]["parts"][0]["text"]
     except Exception:
         return str(data)
+
+
+def generate_clarification(query: str, context: str) -> str:
+    """
+    Generates a clarifying question for ambiguous queries.
+    """
+    prompt = f"""
+    The user asked a possibly ambiguous question: "{query}"
+    Based on the following context:
+    "{context}"
+    Generate a concise clarifying question to ask the user.
+    """
+    return ask_gemini(prompt)
+
+
+def check_ambiguity(query: str, context: str) -> bool:
+    """
+    Checks if a query is ambiguous. Returns True if likely ambiguous.
+    """
+    prompt = f"""
+    Question: "{query}"
+    Context: "{context}"
+    Does this question seem ambiguous or vague based on the context? 
+    Answer only Yes or No.
+    """
+    response = ask_gemini(prompt).strip().lower()
+    return "yes" in response

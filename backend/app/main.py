@@ -1,87 +1,75 @@
 # app/main.py
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import List, Optional
+from fastapi import FastAPI, Request
+from .ingest import process_document
+from .retrieval import retrieve_chunks
+from .query_llm import ask_gemini, generate_clarification
+from .schemas import AskRequest, AskResponse, ChunkUsed, Source
+from .utils import unique_sources
 
-app = FastAPI()
+SIMILARITY_THRESHOLD = 0.25  # Minimum similarity to consider chunk relevant
 
-# -------------------------------
-# Pydantic models
-# -------------------------------
-class Source(BaseModel):
-    source: str
-    page: Optional[int] = None
+app = FastAPI(title="Campus Knowledge Agent API")
 
-class Chunk(BaseModel):
-    text: str
-    source: str
-    page: Optional[int] = None
-    similarity: Optional[float] = None
+# Simple in-memory session memory: stores last question + chunks per user
+session_memory = {}
 
-class AskRequest(BaseModel):
-    question: str
-
-class AskResponse(BaseModel):
-    question: str
-    answer: Optional[str] = None
-    clarification_required: Optional[bool] = False
-    clarification_question: Optional[str] = None
-    sources: List[Source] = []
-    chunks_used: List[Chunk] = []
-
-# -------------------------------
-# Dummy knowledge base
-# Replace this with your actual PDF retrieval/vector search logic
-# -------------------------------
-DOCUMENTS = {
-    "docs/campus_rules.pdf": "There are three campuses of PESU: HN, RR, EC...",
-    "docs/student_handbook.pdf": "Course objectives, IoT, Robotics, etc..."
-}
-
-# -------------------------------
-# Helper functions
-# -------------------------------
-def retrieve_chunks(question: str):
-    # Simulate retrieving relevant chunks
-    chunks = []
-    for src, text in DOCUMENTS.items():
-        if any(word.lower() in text.lower() for word in question.lower().split()):
-            chunks.append(
-                Chunk(text=text, source=src, similarity=0.9)
-            )
-    return chunks
-
-def check_ambiguity(question: str):
-    # Dummy ambiguity detection
-    ambiguous_keywords = ["location", "where", "find", "address"]
-    return any(word.lower() in question.lower() for word in ambiguous_keywords)
-
-# -------------------------------
-# Ask endpoint
-# -------------------------------
 @app.post("/ask", response_model=AskResponse)
-async def ask_question(request: AskRequest):
-    question = request.question
-    chunks = retrieve_chunks(question)
-    
-    if check_ambiguity(question):
+async def ask(req: AskRequest, request: Request):
+    user_id = request.client.host  # for simplicity, using IP; can use auth ID
+    previous_context = session_memory.get(user_id, {})
+
+    # Retrieve top chunks from DB
+    chunks, raw_context = retrieve_chunks(req.question, top_k=req.top_k)
+
+    # Combine with previous context if follow-up
+    if previous_context:
+        combined_context = previous_context.get("raw_context", "") + "\n\n" + raw_context
+    else:
+        combined_context = raw_context
+
+    if not chunks and not previous_context:
         return AskResponse(
-            question=question,
-            clarification_required=True,
-            clarification_question="Your question is ambiguous. Are you asking for the exact address of the campus, or general location info?",
+            question=req.question,
+            answer="I don't know based on the provided documents.",
             sources=[],
             chunks_used=[]
         )
-    
-    # Dummy answer generation
-    answer = "Based on the provided text, PESU has three campuses: HN, RR, EC."
-    
-    sources = [Source(source=chunk.source, page=chunk.page) for chunk in chunks]
-    
+
+    # Check ambiguity based on similarity
+    top_similarity = max([c.get("similarity", 0) for c in chunks], default=0)
+    if top_similarity < SIMILARITY_THRESHOLD and not previous_context:
+        clarification = generate_clarification(req.question, combined_context)
+        return AskResponse(
+            question=req.question,
+            answer=None,
+            sources=[],
+            chunks_used=[],
+            clarification_required=True,
+            clarification_question=clarification
+        )
+
+    # Ask Gemini LLM using combined context
+    answer = ask_gemini(combined_context + "\n\nQuestion: " + req.question)
+
+    # Save current context to session memory
+    session_memory[user_id] = {
+        "question": req.question,
+        "chunks": chunks,
+        "raw_context": combined_context
+    }
+
+    # Prepare sources and chunks_used
+    sources = [Source(**s) for s in unique_sources(chunks)]
+    used = [ChunkUsed(
+        text=c["content"],
+        source=c.get("source"),
+        page=c.get("page"),
+        similarity=c.get("similarity")
+    ) for c in chunks]
+
     return AskResponse(
-        question=question,
-        answer=answer,
-        clarification_required=False,
+        question=req.question,
+        answer=answer.strip(),
         sources=sources,
-        chunks_used=chunks
+        chunks_used=used
     )
