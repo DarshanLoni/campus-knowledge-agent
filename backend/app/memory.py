@@ -1,5 +1,5 @@
 # app/memory.py
-
+#  CHECKPOINT WORKING
 from typing import Dict, List
 from .schemas import AskRequest, AskResponse
 

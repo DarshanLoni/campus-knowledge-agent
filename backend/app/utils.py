@@ -1,5 +1,5 @@
 import fitz  # PyMuPDF
-
+#  CHECKPOINT WORKING
 def process_pdf_into_chunks(file_path: str, chunk_size: int = 500):
     """
     Reads a PDF and splits it into text chunks.
