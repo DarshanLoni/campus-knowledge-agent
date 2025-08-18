@@ -1,8 +1,14 @@
+
 import streamlit as st
 import requests
+import os
 from utils import get_auth_headers
 
+
 st.set_page_config(page_title="Campus Knowledge Agent", page_icon="🎓", layout="wide")
+
+# Load BACKEND_URL from .env or Streamlit secrets
+BACKEND_URL = os.environ.get("BACKEND_URL") or st.secrets.get("BACKEND_URL") or "http://localhost:8000"
 
 # ------------------ Token Handling ------------------
 query_params = st.experimental_get_query_params()
@@ -17,7 +23,7 @@ if "jwt_token" not in st.session_state:
     st.markdown("""
         <div style="display:flex; justify-content:center; align-items:center; height:80vh; flex-direction:column;">
             <h1 style="font-family:sans-serif; color:#4B8BBE;">Campus Knowledge Agent</h1>
-            <a href="http://localhost:8000/auth/google/login" style="
+            <a href="{BACKEND_URL}/auth/google/login" style="
                 background-color:#4285F4; color:white; padding:12px 24px; 
                 text-decoration:none; border-radius:8px; font-weight:bold; font-size:18px;">
                 Continue with Google
@@ -72,7 +78,7 @@ if page == "Home":
     """, unsafe_allow_html=True)
 
     try:
-        resp = requests.get("http://localhost:8000/files", headers=headers)
+        resp = requests.get(f"{BACKEND_URL}/files", headers=headers)
         if resp.status_code == 200:
             files = resp.json().get("files", [])
             if files:
@@ -100,7 +106,7 @@ elif page == "Upload":
         files = {"file": (uploaded_file.name, uploaded_file.getbuffer(), "application/pdf")}
         try:
             resp = requests.post(
-                "http://localhost:8000/upload",
+                f"{BACKEND_URL}/upload",
                 files=files,
                 headers=headers
             )
@@ -116,7 +122,7 @@ elif page == "Upload":
 elif page == "Files":
     st.markdown("<h1 style='color:#4B8BBE;'>📄 Uploaded Files</h1>", unsafe_allow_html=True)
     try:
-        resp = requests.get("http://localhost:8000/files", headers=headers)
+        resp = requests.get(f"{BACKEND_URL}/files", headers=headers)
         if resp.status_code == 200:
             files = resp.json().get("files", [])
             if not files:
@@ -130,7 +136,7 @@ elif page == "Files":
                 """, unsafe_allow_html=True)
                 if st.button(f"Delete {f['filename']}"):
                     del_resp = requests.delete(
-                        "http://localhost:8000/files",
+                        f"{BACKEND_URL}/files",
                         json={"file_ids": [f['file_id']]},
                         headers=headers
                     )
