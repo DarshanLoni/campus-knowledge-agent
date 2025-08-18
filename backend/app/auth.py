@@ -1,5 +1,5 @@
 # app/auth.py
-#  CHECKPOINT WORKING
+#  CHECKPOINT WORKING from github
 import os, time, json, base64, hashlib, hmac, secrets
 import requests
 from typing import Optional, Dict, Any
@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from .db import supabase
+from fastapi.responses import RedirectResponse
+from fastapi import Cookie, Header
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -78,12 +80,23 @@ def create_jwt(user_id: str) -> str:
     }
     return _sign_jwt(payload, JWT_SECRET)
 
-async def get_current_user(token: HTTPAuthorizationCredentials = Depends(bearer_scheme)) -> Dict[str, Any]:
-    payload = _verify_jwt(token.credentials, JWT_SECRET)
+async def get_current_user(
+    authorization: Optional[str] = Header(None),
+    jwt_token: Optional[str] = Cookie(None)
+) -> Dict[str, Any]:
+    token = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+    elif jwt_token:
+        token = jwt_token
+    else:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    payload = _verify_jwt(token, JWT_SECRET)
     return {"user_id": payload["user_id"]}
 
-@auth_router.get("/google/login", response_model=AuthURLResponse)
-def google_login():
+@auth_router.get("/google/login")
+def google_login_redirect():
     state = secrets.token_urlsafe(16)
     scope = "openid email profile"
     auth_url = (
@@ -97,9 +110,73 @@ def google_login():
         f"&state={state}"
         f"&prompt=consent"
     )
-    return {"auth_url": auth_url}
+    # Redirect user automatically to Google OAuth
+    return RedirectResponse(url=auth_url)
 
-@auth_router.get("/google/callback", response_model=TokenResponse)
+# @auth_router.get("/google/callback")
+# def google_callback(code: str = Query(...)):
+#     # 1) Exchange code for tokens
+#     token_resp = requests.post(
+#         "https://oauth2.googleapis.com/token",
+#         headers={"Content-Type": "application/x-www-form-urlencoded"},
+#         data={
+#             "code": code,
+#             "client_id": GOOGLE_CLIENT_ID,
+#             "client_secret": GOOGLE_CLIENT_SECRET,
+#             "redirect_uri": GOOGLE_REDIRECT_URI,
+#             "grant_type": "authorization_code",
+#         },
+#         timeout=30,
+#     )
+#     if token_resp.status_code != 200:
+#         raise HTTPException(status_code=400, detail=f"Token exchange failed: {token_resp.text}")
+#     tokens = token_resp.json()
+#     access_token = tokens.get("access_token")
+
+#     # 2) Fetch user info
+#     ui = requests.get(
+#         "https://openidconnect.googleapis.com/v1/userinfo",
+#         headers={"Authorization": f"Bearer {access_token}"},
+#         timeout=30,
+#     )
+#     if ui.status_code != 200:
+#         raise HTTPException(status_code=400, detail=f"Userinfo failed: {ui.text}")
+#     info = ui.json()
+#     user_id = info.get("sub")
+#     email = info.get("email")
+#     name = info.get("name")
+#     picture = info.get("picture")
+
+#     # 3) Upsert user in Supabase
+#     supabase.table("users").upsert({
+#         "user_id": user_id,
+#         "email": email,
+#         "name": name,
+#         "picture": picture,
+#     }, on_conflict="user_id").execute()
+
+#     # 4) Issue JWT
+#     jwt_token = create_jwt(user_id)
+
+#     # 5) Set JWT in HttpOnly cookie & redirect
+#     # redirect_url = os.getenv("FRONTEND_URL", "http://localhost:3000/home")
+#     # response = RedirectResponse(url=redirect_url)
+#     # response.set_cookie(
+#     #     key="jwt_token",
+#     #     value=jwt_token,
+#     #     httponly=True,
+#     #     secure=False,  # set False if testing in localhost without HTTPS
+#     #     samesite="lax",
+#     #     max_age=60*60*24*7  # 7 days
+#     # )
+#     # return response
+
+#       # 5) Redirect with token in URL query (for Streamlit or SPA)
+#     redirect_url = os.getenv("FRONTEND_URL", "http://localhost:8501/home")
+#     redirect_url_with_token = f"{redirect_url}?token={jwt_token}"
+#     response = RedirectResponse(url=redirect_url_with_token)
+#     return response
+@auth_router.get("/google/callback")
 def google_callback(code: str = Query(...)):
     # 1) Exchange code for tokens
     token_resp = requests.post(
@@ -119,7 +196,7 @@ def google_callback(code: str = Query(...)):
     tokens = token_resp.json()
     access_token = tokens.get("access_token")
 
-    # 2) Fetch user info (OpenID userinfo)
+    # 2) Fetch user info
     ui = requests.get(
         "https://openidconnect.googleapis.com/v1/userinfo",
         headers={"Authorization": f"Bearer {access_token}"},
@@ -128,7 +205,6 @@ def google_callback(code: str = Query(...)):
     if ui.status_code != 200:
         raise HTTPException(status_code=400, detail=f"Userinfo failed: {ui.text}")
     info = ui.json()
-    # Google 'sub' is stable unique id for the user
     user_id = info.get("sub")
     email = info.get("email")
     name = info.get("name")
@@ -142,7 +218,12 @@ def google_callback(code: str = Query(...)):
         "picture": picture,
     }, on_conflict="user_id").execute()
 
-    # 4) Issue our JWT
+    # 4) Issue JWT
     jwt_token = create_jwt(user_id)
 
-    return {"token": jwt_token, "user": {"user_id": user_id, "email": email, "name": name, "picture": picture}}
+    # 5) Redirect to frontend (Streamlit) with token in query param
+   # Redirect to Streamlit main page with token as query param
+    redirect_url = os.getenv("FRONTEND_URL", "http://localhost:8501")
+    redirect_url_with_token = f"{redirect_url}?token={jwt_token}"
+    response = RedirectResponse(url=redirect_url_with_token)
+    return response

@@ -12,4 +12,5 @@ node_modules/
 frontend/.streamlit/
 # Virtual environment
 backend/.venv/
+frontend/.venv/
 

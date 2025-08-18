@@ -1,5 +1,4 @@
 # app/main.py
-#  CHECKPOINT WORKING
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 from fastapi import FastAPI, Request, File, UploadFile, HTTPException, Depends
@@ -13,11 +12,20 @@ from .query_llm import ask_gemini, generate_clarification
 from .schemas import AskRequest, AskResponse, ChunkUsed, Source
 from .utils import unique_sources
 from .auth import auth_router, get_current_user
+from fastapi.middleware.cors import CORSMiddleware
 
 SIMILARITY_THRESHOLD = 0.25
 
 app = FastAPI(title="Campus Knowledge Agent API")
 app.include_router(auth_router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8501"],  # Streamlit default port
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # per-user in-memory follow-up context
 session_memory = {}
@@ -127,3 +135,6 @@ def delete_files(req: DeleteRequest, user=Depends(get_current_user)):
 
     return {"deleted": deleted, "errors": errors}
 
+@app.get("/me")
+def me(user=Depends(get_current_user)):
+    return user
