@@ -1,14 +1,8 @@
-
 import streamlit as st
 import requests
-import os
 from utils import get_auth_headers
 
-
 st.set_page_config(page_title="Campus Knowledge Agent", page_icon="🎓", layout="wide")
-
-# Load BACKEND_URL from .env or Streamlit secrets
-BACKEND_URL = os.environ.get("BACKEND_URL") or st.secrets.get("BACKEND_URL") or "http://localhost:8000"
 
 # ------------------ Token Handling ------------------
 query_params = st.experimental_get_query_params()
@@ -23,7 +17,7 @@ if "jwt_token" not in st.session_state:
     st.markdown("""
         <div style="display:flex; justify-content:center; align-items:center; height:80vh; flex-direction:column;">
             <h1 style="font-family:sans-serif; color:#4B8BBE;">Campus Knowledge Agent</h1>
-            <a href="{BACKEND_URL}/auth/google/login" style="
+            <a href="http://localhost:8000/auth/google/login" style="
                 background-color:#4285F4; color:white; padding:12px 24px; 
                 text-decoration:none; border-radius:8px; font-weight:bold; font-size:18px;">
                 Continue with Google
@@ -40,30 +34,29 @@ headers = get_auth_headers()
 
 # ------------------ Theme Colors ------------------
 if st.get_option("theme.base") == "dark":
-    USER_BUBBLE = "rgba(30,144,255,0.9)"      # blueish for user
-    BOT_BUBBLE = "rgba(25,25,25,0.95)"        # even darker for bot
+    USER_BUBBLE = "#4B8BBE"      # blueish for user
+    BOT_BUBBLE = "#4B8BBE"         # dark grey for bot
     CARD_BG = "rgba(50,50,50,0.3)"
     CARD_BORDER = "rgba(100,100,100,0.5)"
     AI_THINKING = "#FFFFFF"
-    CHAT_TEXT_COLOR = "#FFFFFF"
 else:
-    USER_BUBBLE = "rgba(220,248,198,0.9)"
-    BOT_BUBBLE = "rgb(22, 38, 51)"
+    USER_BUBBLE = "#4B8BBE"
+    BOT_BUBBLE = "#4B8BBE"
     CARD_BG = "rgba(255,255,255,0.05)"
     CARD_BORDER = "rgba(224,224,224,0.5)"
-    AI_THINKING = "#555555"
-    CHAT_TEXT_COLOR = "#222222"
+    AI_THINKING = "#FFFFFF"
 
+# ----- Home Page -----
 # ----- Home Page -----
 if page == "Home":
     st.markdown("<h1 style='color:#4B8BBE;'>🎓 EduAssist AI</h1>", unsafe_allow_html=True)
     
     st.markdown("""
         <div style="padding:15px; border-radius:10px; background-color: #4B8BBE;">
-            <h3 style="color:#4B8BBE;">About EduAssist AI</h3>
+            <h3 style="color:black;">About EduAssist AI</h3>
             <p>
             EduAssist AI is your personal AI-powered knowledge assistant for academic and campus-related content.
-            It allows you to upload PDF documents, ask questions, and get instant AI-generated answers  
+            It allows you to upload PDF documents, ask questions, and get instant AI-generated answers
             with references from your uploaded materials.
             </p>
             <ul>
@@ -78,7 +71,7 @@ if page == "Home":
     """, unsafe_allow_html=True)
 
     try:
-        resp = requests.get(f"{BACKEND_URL}/files", headers=headers)
+        resp = requests.get("http://localhost:8000/files", headers=headers)
         if resp.status_code == 200:
             files = resp.json().get("files", [])
             if files:
@@ -98,6 +91,64 @@ if page == "Home":
         st.error(f"Error: {e}")
 
 
+# ----- Ask Page (Chat UI) -----
+elif page == "Ask":
+    st.markdown("<h1 style='color:#4B8BBE;'>❓ Ask a Question</h1>", unsafe_allow_html=True)
+
+    if "chat_history" not in st.session_state:
+        st.session_state["chat_history"] = []
+
+    question = st.text_input("Enter your question:")
+
+    if st.button("Ask"):
+        if question:
+            st.session_state["chat_history"].append({"role": "user", "text": question})
+            st.rerun()
+
+    # Display chat
+    for idx, msg in enumerate(st.session_state["chat_history"]):
+        if msg["role"] == "user":
+            st.markdown(f"""
+                <div style='text-align:right; margin:5px 0;'>
+                    <span style='background-color:{USER_BUBBLE}; padding:10px 15px; border-radius:15px; 
+                                 display:inline-block; max-width:70%; word-wrap:break-word;'>{msg['text']}</span>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+                <div style='text-align:left; margin:5px 0;'>
+                    <span style='background-color:{BOT_BUBBLE}; padding:10px 15px; border-radius:15px; 
+                                 display:inline-block; max-width:70%; word-wrap:break-word;'>{msg['text']}</span>
+                </div>
+            """, unsafe_allow_html=True)
+
+    if st.session_state["chat_history"] and st.session_state["chat_history"][-1]["role"] == "user":
+        placeholder = st.empty()
+        placeholder.markdown(f"""
+            <div style='text-align:left; margin:5px 0;'>
+                <span style='background-color:{BOT_BUBBLE}; padding:10px 15px; border-radius:15px; 
+                             display:inline-block; max-width:70%; word-wrap:break-word; font-style:italic; color:{AI_THINKING};'>
+                    AI is thinking...
+                </span>
+            </div>
+        """, unsafe_allow_html=True)
+
+        try:
+            response = requests.post(
+                "http://localhost:8000/ask",
+                json={"question": st.session_state["chat_history"][-1]["text"], "top_k": 4},
+                headers=headers
+            )
+            if response.status_code == 200:
+                data = response.json()
+                st.session_state["chat_history"].append({"role": "bot", "text": data.get("answer", "No answer found")})
+            else:
+                st.session_state["chat_history"].append({"role": "bot", "text": f"Error: {response.text}"})
+        except Exception as e:
+            st.session_state["chat_history"].append({"role": "bot", "text": f"Error: {e}"})
+        placeholder.empty()
+        st.rerun()
+
 # ----- Upload Page -----
 elif page == "Upload":
     st.markdown("<h1 style='color:#4B8BBE;'>📤 Upload PDF</h1>", unsafe_allow_html=True)
@@ -106,7 +157,7 @@ elif page == "Upload":
         files = {"file": (uploaded_file.name, uploaded_file.getbuffer(), "application/pdf")}
         try:
             resp = requests.post(
-                f"{BACKEND_URL}/upload",
+                "http://localhost:8000/upload",
                 files=files,
                 headers=headers
             )
@@ -122,7 +173,7 @@ elif page == "Upload":
 elif page == "Files":
     st.markdown("<h1 style='color:#4B8BBE;'>📄 Uploaded Files</h1>", unsafe_allow_html=True)
     try:
-        resp = requests.get(f"{BACKEND_URL}/files", headers=headers)
+        resp = requests.get("http://localhost:8000/files", headers=headers)
         if resp.status_code == 200:
             files = resp.json().get("files", [])
             if not files:
@@ -136,7 +187,7 @@ elif page == "Files":
                 """, unsafe_allow_html=True)
                 if st.button(f"Delete {f['filename']}"):
                     del_resp = requests.delete(
-                        f"{BACKEND_URL}/files",
+                        "http://localhost:8000/files",
                         json={"file_ids": [f['file_id']]},
                         headers=headers
                     )
