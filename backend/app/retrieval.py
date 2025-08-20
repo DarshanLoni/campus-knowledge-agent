@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from .db import supabase
 import google.generativeai as genai
-
+#  CHECKPOINT WORKING Fully functional
 load_dotenv()
 
 # ✅ Use API key for Gemini

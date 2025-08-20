@@ -1,3 +1,4 @@
+#  CHECKPOINT WORKING Fully functional
 # app/main.py
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)

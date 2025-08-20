@@ -1,5 +1,5 @@
 # app/prompt.py
-#  CHECKPOINT WORKING
+#  CHECKPOINT WORKING Fully functional
 from typing import List, Dict
 
 SYSTEM_INSTRUCTION = (

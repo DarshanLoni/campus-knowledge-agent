@@ -1,5 +1,5 @@
 import streamlit as st
-
+#  CHECKPOINT WORKING Fully functional
 def get_auth_headers() -> dict:
     """
     Returns Authorization headers with JWT token from session_state.

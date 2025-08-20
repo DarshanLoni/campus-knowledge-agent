@@ -1,3 +1,4 @@
+#  CHECKPOINT WORKING Fully functional
 import os
 from dotenv import load_dotenv
 from .db import supabase
