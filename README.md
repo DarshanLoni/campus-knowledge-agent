@@ -1,120 +1,137 @@
-# Campus Knowledge Agent
+# EduAssist AI: Campus Knowledge Agent 🎓🤖
 
-A monorepo for a campus knowledge agent platform with FastAPI backend and optional Streamlit frontend.
-
-## Structure
-
-
-## Quick Start
-
-1. **Backend**
-   - `cd backend`
-   - `pip install -r requirements.txt`
-   - `uvicorn app.main:app --reload`
-
-2. **Frontend**
-   - `cd frontend`
-   - `pip install -r requirements.txt`
-   - `streamlit run app.py`
-
-3. **Docker Compose**
-   - `docker-compose up --build`
-# Campus Knowledge Agent
-
-Campus Knowledge Agent is an AI-powered platform designed to ingest, retrieve, and answer queries about campus-related documents and knowledge bases. It features a robust backend API and an interactive frontend for seamless user experience.
-
-## Features
-- **Document Ingestion:** Upload and process campus documents (PDFs, etc.) for knowledge extraction.
-- **Semantic Search:** Retrieve relevant information using advanced retrieval and embedding techniques.
-- **LLM-Powered Q&A:** Ask questions and get answers using integrated Large Language Models (LLMs).
-- **Authentication:** Secure access to backend APIs.
-- **Frontend Interface:** User-friendly web app for querying and exploring campus knowledge.
+EduAssist AI is an **AI-powered campus knowledge assistant** that allows students and faculty to **upload, search, query, and manage documents** seamlessly. It leverages **RAG (Retrieval-Augmented Generation)** with Hugging Face embeddings, Supabase storage, and a Streamlit frontend for an easy-to-use interface.
 
 ---
 
-## Project Structure
+## 🚀 Features
+
+- 📂 **Upload & Manage Documents** (stored in Supabase)  
+- 🔐 **JWT Authentication & Session Management**  
+- 🔎 **Semantic Search** using Hugging Face embeddings  
+- ❓ **Q&A over Documents** (Ask your PDFs directly!)  
+- 🗑️ **Delete Files** securely with ownership check  
+- 🖥️ **Streamlit Frontend** for interactive usage  
+- ☁️ **Supabase Backend** for storage + metadata  
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend**: [Streamlit](https://streamlit.io/)  
+- **Backend**: [FastAPI](https://fastapi.tiangolo.com/)  
+- **Database + Storage**: [Supabase](https://supabase.com/)  
+- **Embeddings**: Hugging Face (`sentence-transformers/all-MiniLM-L6-v2`)  
+- **Auth**: JWT Authentication  
+- **Vector Search**: Supabase pgvector  
+
+---
+
+## 📂 Project Structure
+
 ```
-campus-knowledge-agent/
+EduAssist-AI/
+│
+├── README.md
+├── requirements.txt
 │
 ├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── auth.py         # Authentication logic
-│   │   ├── db.py           # Database connection and models
-│   │   ├── ingest.py       # Document ingestion and processing
-│   │   ├── main.py         # FastAPI app entrypoint
-│   │   ├── memory.py       # In-memory storage utilities
-│   │   ├── prompt.py       # Prompt templates for LLMs
-│   │   ├── query_llm.py    # LLM query logic
-│   │   ├── retrieval.py    # Semantic search and retrieval
-│   │   ├── schemas.py      # Pydantic schemas
-│   │   └── utils.py        # Utility functions
-│   ├── requirements.txt    # Backend dependencies
-│   └── ...
+│   └── app/
+│       ├── auth.py
+│       ├── db.py
+│       ├── ingest.py
+│       ├── main.py
+│       ├── memory.py
+│       ├── prompt.py
+│       ├── query_llm.py
+│       ├── retrieval.py
+│       ├── schemas.py
+│       ├── utils.py
 │
-├── frontend/
-│   ├── app.py              # Streamlit app entrypoint
-│   ├── config.py           # Frontend configuration
-│   ├── requirements.txt    # Frontend dependencies
-│   └── utils.py            # Frontend utilities
-│
-├── requirements.txt        # Top-level requirements
-├── service_account.json    # Service account credentials (if needed)
-└── README.md               # Project documentation
+└── frontend/
+    ├── app.py
+    ├── utils.py
 ```
 
 ---
 
-## Getting Started
+## ⚙️ Installation & Run
 
-### Backend (FastAPI)
-1. **Install dependencies:**
-   ```bash
-   pip install -r backend/requirements.txt
-   ```
-2. **Run the backend server:**
-   ```bash
-   cd backend
-   uvicorn app.main:app --reload
-   ```
+```bash
+# Clone Repository
+git clone https://github.com/your-username/EduAssist-AI.git
+cd EduAssist-AI
 
-### Frontend (Streamlit)
-1. **Install dependencies:**
-   ```bash
-   pip install -r frontend/requirements.txt
-   ```
-2. **Run the frontend app:**
-   ```bash
-   cd frontend
-   streamlit run app.py
-   ```
+# Install Dependencies
+pip install -r requirements.txt
+
+# Start FastAPI backend
+cd src/app
+uvicorn main:app --reload
+
+# Start Streamlit frontend
+cd ../frontend
+streamlit run streamlit_app.py
+```
 
 ---
 
-## Usage
-- **Ingest Documents:** Use the frontend or API to upload campus documents.
-- **Ask Questions:** Enter queries in the frontend to get instant, context-aware answers.
-- **Authentication:** Secure endpoints require authentication (see `backend/app/auth.py`).
+## 📊 System Design
+
+### 🏗️ Architecture Diagram
+![Architecture](src/architecture.png)
+
+### 🔹 High-Level Design (HLD)
+![HLD](src/hld.png)
+
+### 🔹 Low-Level Design (LLD)
+![LLD](src/lld.png)
 
 ---
 
-## Technologies Used
-- **Backend:** FastAPI, Pydantic, Uvicorn
-- **Frontend:** Streamlit
-- **LLM Integration:** OpenAI or similar (see `backend/app/query_llm.py`)
-- **Database:** (Configurable, see `backend/app/db.py`)
+## 🔑 Key Modules
+
+1. **Authentication** → JWT tokens for secure user sessions
+2. **File Upload** → Store files in Supabase, keep metadata in DB
+3. **Text Extraction** → Extract text from PDFs using PyPDFLoader
+4. **Embeddings** → Hugging Face model (`all-MiniLM-L6-v2`)
+5. **Vector Search** → Store + search embeddings in Supabase pgvector
+6. **RAG Q&A** → Retrieve relevant chunks + answer with LLM
+7. **Frontend (Streamlit)** → Simple dashboard for users
 
 ---
 
-## Contributing
-1. Fork the repository
-2. Create a new branch (`git checkout -b feature/your-feature`)
-3. Commit your changes
-4. Push to the branch (`git push origin feature/your-feature`)
-5. Open a Pull Request
+## 📘 Example Usage
+
+1. **Login/Register**
+2. **Upload PDF**
+3. **Ask Questions** → *"What is covered in Chapter 3?"*
+4. **View/Delete Files**
 
 ---
 
+## ✅ Current Phase Completion
 
+- ✅ JWT Authentication
+- ✅ Supabase Integration (Storage + DB + pgvector)
+- ✅ File Upload & Delete APIs
+- ✅ Hugging Face Embeddings + Vector Search
+- ✅ RAG-based QnA
+- ✅ Streamlit Frontend
 
+---
 
+## 📌 Next Steps (Future Work)
+
+- Add **role-based access control (RBAC)**
+- Improve **UI/UX** in Streamlit
+- Add **chat memory** for multi-turn QnA
+- Enable **real-time notifications** for updates
+
+---
+
+## 👨‍💻 Project Info
+
+**Project Name**: EduAssist AI – Campus Knowledge Agent  
+**Authors**: Darshan 
+**Stack**: FastAPI, Streamlit, Supabase, Hugging Face, JWT
