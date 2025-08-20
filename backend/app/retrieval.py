@@ -1,20 +1,15 @@
-# app/retrieval.py
 import os
 from dotenv import load_dotenv
 from .db import supabase
 import google.generativeai as genai
-import google.auth
 
 load_dotenv()
 
-# Authenticate with Service Account instead of API key
-credentials, project = google.auth.load_credentials_from_file(
-    os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
-    scopes=["https://www.googleapis.com/auth/cloud-platform"]
-)
-genai.configure(credentials=credentials)
+# ✅ Use API key for Gemini
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+genai.configure(api_key=GOOGLE_API_KEY)
 
-print("Using Google GenAI embeddings with Service Account for retrieval...")
+print("Using Google GenAI embeddings with API key for retrieval...")
 
 def retrieve_chunks(query: str, user_id: str, top_k: int = 3):
     # Generate embedding for query
