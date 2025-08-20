@@ -59,8 +59,8 @@ EduAssist-AI/
 
 ```bash
 # Clone Repository
-git clone https://github.com/your-username/EduAssist-AI.git
-cd EduAssist-AI
+git clone https://github.com/DarshanLoni/campus-knowledge-agent.git
+cd campus-knowledge-agent
 
 # Install Dependencies
 pip install -r requirements.txt
