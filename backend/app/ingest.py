@@ -1,22 +1,23 @@
 # app/ingest.py
-# CHECKPOINT FIXED
 import os
 from dotenv import load_dotenv
 from .db import supabase
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
 from os.path import basename
+import google.generativeai as genai
+import google.auth
 
 load_dotenv()
-HF_TOKEN = os.getenv("HF_TOKEN")
 
-print("Loading embedding model...")
-# use_auth_token deprecated → use token
-model = SentenceTransformer(
-    'sentence-transformers/paraphrase-MiniLM-L3-v2',
-    token=HF_TOKEN
+# Authenticate with Service Account instead of API key
+credentials, project = google.auth.load_credentials_from_file(
+    os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
 )
+genai.configure(credentials=credentials)
+
+print("Using Google GenAI embeddings with Service Account...")
 
 def process_document(file_path: str, user_id: str, file_id: str):
     loader = PyPDFLoader(file_path)
@@ -29,7 +30,13 @@ def process_document(file_path: str, user_id: str, file_id: str):
 
     for idx, chunk in enumerate(chunks):
         page = chunk.metadata.get("page", None)
-        embedding = model.encode(chunk.page_content).tolist()
+
+        # Generate embedding using Google GenAI
+        embedding_resp = genai.embed_content(
+            model="models/embedding-001",
+            content=chunk.page_content
+        )
+        embedding = embedding_resp["embedding"]
 
         supabase.table("chunks").insert({
             "content": chunk.page_content,
