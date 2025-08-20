@@ -1,18 +1,28 @@
 # app/retrieval.py
-#  CHECKPOINT WORKING
 import os
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 from .db import supabase
+import google.generativeai as genai
+import google.auth
 
 load_dotenv()
-HF_TOKEN = os.getenv("HF_TOKEN")
 
-print("Loading embedding model for retrieval...")
-model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', use_auth_token=HF_TOKEN)
+# Authenticate with Service Account instead of API key
+credentials, project = google.auth.load_credentials_from_file(
+    os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
+    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+)
+genai.configure(credentials=credentials)
+
+print("Using Google GenAI embeddings with Service Account for retrieval...")
 
 def retrieve_chunks(query: str, user_id: str, top_k: int = 3):
-    query_embedding = model.encode(query).tolist()
+    # Generate embedding for query
+    embedding_resp = genai.embed_content(
+        model="models/embedding-001",
+        content=query
+    )
+    query_embedding = embedding_resp["embedding"]
 
     resp = supabase.rpc(
         "match_documents_user",
