@@ -1,4 +1,3 @@
-# app/ingest.py
 import os
 from dotenv import load_dotenv
 from .db import supabase
@@ -6,18 +5,14 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from os.path import basename
 import google.generativeai as genai
-import google.auth
 
 load_dotenv()
 
-# Authenticate with Service Account instead of API key
-credentials, project = google.auth.load_credentials_from_file(
-    os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
-    scopes=["https://www.googleapis.com/auth/cloud-platform"]
-)
-genai.configure(credentials=credentials)
+# ✅ Use API key for Gemini
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+genai.configure(api_key=GOOGLE_API_KEY)
 
-print("Using Google GenAI embeddings with Service Account...")
+print("Using Google GenAI embeddings with API key...")
 
 def process_document(file_path: str, user_id: str, file_id: str):
     loader = PyPDFLoader(file_path)
@@ -31,7 +26,7 @@ def process_document(file_path: str, user_id: str, file_id: str):
     for idx, chunk in enumerate(chunks):
         page = chunk.metadata.get("page", None)
 
-        # Generate embedding using Google GenAI
+        # Generate embedding using Gemini
         embedding_resp = genai.embed_content(
             model="models/embedding-001",
             content=chunk.page_content
