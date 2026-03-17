@@ -1,6 +1,6 @@
 # EduAssist AI: Campus Knowledge Agent 🎓🤖
 
-EduAssist AI is an **AI-powered campus knowledge assistant** that allows students and faculty to **upload, search, query, and manage documents** seamlessly. It leverages **RAG (Retrieval-Augmented Generation)** with Hugging Face embeddings, Supabase storage, and a Streamlit frontend for an easy-to-use interface.
+EduAssist AI is an **AI-powered campus knowledge assistant** that allows students and faculty to **upload, search, query, and manage documents** seamlessly. It leverages **RAG (Retrieval-Augmented Generation)** with Google Gemini embeddings, Supabase storage, and a Streamlit frontend for an easy-to-use interface.
 
 ---
 
@@ -8,7 +8,7 @@ EduAssist AI is an **AI-powered campus knowledge assistant** that allows student
 
 - 📂 **Upload & Manage Documents** (stored in Supabase)  
 - 🔐 **JWT Authentication & Session Management**  
-- 🔎 **Semantic Search** using Hugging Face embeddings  
+- 🔎 **Semantic Search** using Google Gemini embeddings  
 - ❓ **Q&A over Documents** (Ask your PDFs directly!)  
 - 🗑️ **Delete Files** securely with ownership check  
 - 🖥️ **Streamlit Frontend** for interactive usage  
@@ -21,7 +21,7 @@ EduAssist AI is an **AI-powered campus knowledge assistant** that allows student
 - **Frontend**: [Streamlit](https://streamlit.io/)  
 - **Backend**: [FastAPI](https://fastapi.tiangolo.com/)  
 - **Database + Storage**: [Supabase](https://supabase.com/)  
-- **Embeddings**: Hugging Face (`sentence-transformers/all-MiniLM-L6-v2`)  
+- **Embeddings & LLM**: Google Gemini (`embedding-001` & Generative APIs)  
 - **Auth**: JWT Authentication  
 - **Vector Search**: Supabase pgvector  
 
@@ -94,7 +94,7 @@ streamlit run streamlit_app.py
 1. **Authentication** → JWT tokens for secure user sessions
 2. **File Upload** → Store files in Supabase, keep metadata in DB
 3. **Text Extraction** → Extract text from PDFs using PyPDFLoader
-4. **Embeddings** → Hugging Face model (`all-MiniLM-L6-v2`)
+4. **Embeddings & Answer Generation** → Google Gemini APIs
 5. **Vector Search** → Store + search embeddings in Supabase pgvector
 6. **RAG Q&A** → Retrieve relevant chunks + answer with LLM
 7. **Frontend (Streamlit)** → Simple dashboard for users
@@ -115,7 +115,7 @@ streamlit run streamlit_app.py
 - ✅ JWT Authentication
 - ✅ Supabase Integration (Storage + DB + pgvector)
 - ✅ File Upload & Delete APIs
-- ✅ Hugging Face Embeddings + Vector Search
+- ✅ Google Gemini Embeddings + Vector Search
 - ✅ RAG-based QnA
 - ✅ Streamlit Frontend
 
@@ -134,4 +134,4 @@ streamlit run streamlit_app.py
 
 **Project Name**: EduAssist AI – Campus Knowledge Agent  
 **Authors**: Darshan 
-**Stack**: FastAPI, Streamlit, Supabase, Hugging Face, JWT
+**Stack**: FastAPI, Streamlit, Supabase, Google Gemini, JWT
